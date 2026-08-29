@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Master - Entry & Edit</title>
+    <!-- Supabase JS CDN Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .navbar {
+            background-color: #2c3e50;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        .navbar a.active {
+            text-decoration: underline;
+            color: #27ae60;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background-color: #219150; }
+        button.cancel-btn {
+            background-color: #e74c3c;
+            display: none;
+        }
+        button.cancel-btn:hover { background-color: #c0392b; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .edit-btn {
+            background-color: #2980b9;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .edit-btn:hover { background-color: #1f6391; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- নেভিগেশন বার -->
+    <div class="navbar">
+        <a href="index.html">School Master</a>
+        <a href="students.html" class="active">Student Master</a>
+    </div>
+
+    <h2 id="form-title">নতুন স্টুডেন্ট এনট্রি করুন</h2>
+    
+    <!-- স্টুডেন্ট এন্ট্রি / এডিট ফর্ম -->
+    <form id="studentForm">
+        <!-- Edit করার সময় EnrollmentID ট্র্যাক রাখার জন্য Hidden ফিল্ড -->
+        <input type="hidden" id="editEnrollmentId">
+
+        <div class="form-group">
+            <label for="studentName">ছাত্র/ছাত্রীর নাম (Student Name):</label>
+            <input type="text" id="studentName" placeholder="ছাত্র/ছাত্রীর নাম লিখুন" required>
+        </div>
+
+        <div class="form-group">
+            <label for="fatherName">অভিভাবক/বাবার নাম (Father Name):</label>
+            <input type="text" id="fatherName" placeholder="বাবার নাম লিখুন" required>
+        </div>
+
+        <div class="form-group">
+            <label for="schoolSelect">স্কুল নির্বাচন করুন (School):</label>
+            <select id="schoolSelect" required>
+                <option value="">-- স্কুল সিলেক্ট করুন --</option>
+            </select>
+        </div>
+
+        <button type="button" id="saveBtn" onclick="saveStudent()">ডাটা সেভ করুন</button>
+        <button type="button" id="cancelBtn" class="cancel-btn" onclick="resetForm()">বাতিল করুন</button>
+    </form>
+
+    <hr style="margin: 30px 0;">
+
+    <h3>স্টুডেন্ট তালিকা (Student Master List)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Enrollment ID</th>
+                <th>Student Name</th>
+                <th>Father Name</th>
+                <th>School Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="studentTableBody">
+            <!-- ডাটাবেজ থেকে ডাটা লোড হয়ে এখানে বসবে -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // ১. আপনার Supabase URL এবং anon key প্রদান করুন
+    const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    window.onload = async function() {
+        await loadSchoolDropdown();
+        await fetchStudents();
+    };
+
+    // ২. Dropdown-এর জন্য SchoolMaster থেকে স্কুলের তথ্য আনা
+    async function loadSchoolDropdown() {
+        const { data: schools, error } = await _supabase
+            .from('SchoolMaster')
+            .select('SchoolID, SchoolName')
+            .eq('IsActive', true);
+
+        if (error) {
+            console.error('স্কুলের তালিকা লোড করতে সমস্যা:', error);
+            return;
+        }
+
+        const select = document.getElementById('schoolSelect');
+        select.innerHTML = '<option value="">-- স্কুল সিলেক্ট করুন --</option>';
+
+        schools.forEach(school => {
+            const option = document.createElement('option');
+            option.value = school.SchoolID;
+            option.textContent = school.SchoolName;
+            select.appendChild(option);
+        });
+    }
+
+    // ৩. StudentTable থেকে Join Query করে স্কুলের নাম সহ তথ্য আনা (Read/Select)
+    async function fetchStudents() {
+        const { data, error } = await _supabase
+            .from('StudentTable')
+            .select(`
+                EnrollmentID,
+                StudentName,
+                FatherName,
+                SchoolID,
+                SchoolMaster ( SchoolName )
+            `)
+            .order('EnrollmentID', { ascending: false });
+
+        if (error) {
+            console.error('স্টুডেন্ট ডাটা আনতে সমস্যা হয়েছে:', error);
+            alert('ডাটা লোড করতে সমস্যা হয়েছে!');
+            return;
+        }
+
+        const tbody = document.getElementById('studentTableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(student => {
+            const schoolName = student.SchoolMaster ? student.SchoolMaster.SchoolName : 'Unknown';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${student.EnrollmentID}</td>
+                <td>${student.StudentName}</td>
+                <td>${student.FatherName}</td>
+                <td>${schoolName}</td>
+                <td>
+                    <button class="edit-btn" onclick="prepareEdit('${student.EnrollmentID}', '${escapeHtml(student.StudentName)}', '${escapeHtml(student.FatherName)}', '${student.SchoolID}')">এডিট</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // ৪. নতুন ডাটা যোগ করা (Insert) অথবা আগের ডাটা আপডেট করা (Update)
+    async function saveStudent() {
+        const editId = document.getElementById('editEnrollmentId').value;
+        const studentName = document.getElementById('studentName').value.trim();
+        const fatherName = document.getElementById('fatherName').value.trim();
+        const schoolId = document.getElementById('schoolSelect').value;
+
+        if (!studentName || !fatherName || !schoolId) {
+            alert('দয়া করে সকল ফিল্ড পূরণ করুন!');
+            return;
+        }
+
+        if (editId) {
+            // ডাটা এডিট (UPDATE)
+            const { error } = await _supabase
+                .from('StudentTable')
+                .update({ 
+                    StudentName: studentName, 
+                    FatherName: fatherName,
+                    SchoolID: parseInt(schoolId)
+                })
+                .eq('EnrollmentID', editId);
+
+            if (error) {
+                console.error('আপডেট করতে সমস্যা:', error);
+                alert('ডাটা আপডেট করা যায়নি!');
+            } else {
+                alert('স্টুডেন্টের তথ্য সফলভাবে আপডেট হয়েছে!');
+                resetForm();
+                fetchStudents();
+            }
+        } else {
+            // নতুন ডাটা ইনসার্ট (INSERT)
+            const { error } = await _supabase
+                .from('StudentTable')
+                .insert([{ 
+                    StudentName: studentName, 
+                    FatherName: fatherName,
+                    SchoolID: parseInt(schoolId)
+                }]);
+
+            if (error) {
+                console.error('সেভ করতে সমস্যা:', error);
+                alert('ডাটা সেভ করা যায়নি!');
+            } else {
+                alert('নতুন স্টুডেন্ট সফলভাবে সেভ হয়েছে!');
+                resetForm();
+                fetchStudents();
+            }
+        }
+    }
+
+    // ৫. এডিট মোড চালু করা
+    function prepareEdit(id, name, fatherName, schoolId) {
+        document.getElementById('editEnrollmentId').value = id;
+        document.getElementById('studentName').value = name;
+        document.getElementById('fatherName').value = fatherName;
+        document.getElementById('schoolSelect').value = schoolId;
+
+        document.getElementById('form-title').innerText = 'স্টুডেন্টের তথ্য এডিট করুন (ID: ' + id + ')';
+        document.getElementById('saveBtn').innerText = 'আপডেট করুন';
+        document.getElementById('cancelBtn').style.display = 'inline-block';
+    }
+
+    // ৬. ফর্ম রিসেট করা
+    function resetForm() {
+        document.getElementById('editEnrollmentId').value = '';
+        document.getElementById('studentName').value = '';
+        document.getElementById('fatherName').value = '';
+        document.getElementById('schoolSelect').value = '';
+
+        document.getElementById('form-title').innerText = 'নতুন স্টুডেন্ট এনট্রি করুন';
+        document.getElementById('saveBtn').innerText = 'ডাটা সেভ করুন';
+        document.getElementById('cancelBtn').style.display = 'none';
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/'/g, "\\'");
+    }
+</script>
+
+</body>
+</html>
