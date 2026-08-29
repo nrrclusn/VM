@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>Supabase Database Test</title>
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-scoped-js@2"></script>
+</head>
+<body>
+
+    <h2>ডেটা সাবমিট করুন</h2>
+    <input type="text" id="name" placeholder="আপনার নাম">
+    <button onclick="addData()">Save</button>
+
+    <h3>ডাটাবেজের তথ্য:</h3>
+    <ul id="data-list"></ul>
+
+    <script>
+        // ১. Supabase ইনিশিয়ালাইজ করুন
+        const SUPABASE_URL = 'https://your-project-id.supabase.co';
+        const SUPABASE_KEY = 'your-anon-key-here';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ২. ডাটাবেজে ডাটা ইনসার্ট করা
+        async function addData() {
+            const userName = document.getElementById('name').value;
+            const { data, error } = await _supabase
+                .from('users') // আপনার টেবিল এর নাম
+                .insert([{ name: userName }]);
+
+            if (error) console.error(error);
+            else {
+                alert('ডাটা সফলভাবে সেভ হয়েছে!');
+                loadData();
+            }
+        }
+
+        // ৩. ডাটাবেজ থেকে ডাটা পড়া (Fetch Data)
+        async function loadData() {
+            const { data: users, error } = await _supabase
+                .from('users')
+                .select('*');
+
+            const list = document.getElementById('data-list');
+            list.innerHTML = '';
+            users.forEach(user => {
+                list.innerHTML += `<li>${user.name}</li>`;
+            });
+        }
+
+        // পেজ লোড হলে ডাটা দেখাবে
+        loadData();
+    </script>
+</body>
+</html>
