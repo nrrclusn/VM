@@ -154,26 +154,27 @@
 
     // ২. Dropdown-এর জন্য SchoolMaster থেকে স্কুলের তথ্য আনা
     async function loadSchoolDropdown() {
-        const { data: schools, error } = await _supabase
-            .from('SchoolMaster')
-            .select('SchoolID, SchoolName')
-            .eq('IsActive', true);
+    const { data: schools, error } = await _supabase
+        .from('SchoolMaster')
+        .select('SchoolID, SchoolName');
 
-        if (error) {
-            console.error('স্কুলের তালিকা লোড করতে সমস্যা:', error);
-            return;
-        }
-
-        const select = document.getElementById('schoolSelect');
-        select.innerHTML = '<option value="">-- স্কুল সিলেক্ট করুন --</option>';
-
-        schools.forEach(school => {
-            const option = document.createElement('option');
-            option.value = school.SchoolID;
-            option.textContent = school.SchoolName;
-            select.appendChild(option);
-        });
+    if (error) {
+        console.error('স্কুলের তালিকা লোড করতে সমস্যা:', error);
+        alert('স্কুলের নাম লোড করা যাচ্ছে না! Supabase RLS Policy চেক করুন।');
+        return;
     }
+
+    const select = document.getElementById('schoolSelect');
+    select.innerHTML = '<option value="">-- স্কুল সিলেক্ট করুন --</option>';
+
+    schools.forEach(school => {
+        const option = document.createElement('option');
+        option.value = school.SchoolID;
+        option.textContent = school.SchoolName;
+        select.appendChild(option);
+    });
+}
+
 
     // ৩. StudentTable থেকে Join Query করে স্কুলের নাম সহ তথ্য আনা (Read/Select)
     async function fetchStudents() {
