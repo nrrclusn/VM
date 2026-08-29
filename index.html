@@ -2,54 +2,265 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <title>Supabase Database Test</title>
-    <!-- Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-scoped-js@2"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Master - Entry & Edit</title>
+    <!-- Supabase JS CDN Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        h2, h3 {
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #219150;
+        }
+        button.cancel-btn {
+            background-color: #e74c3c;
+            display: none;
+        }
+        button.cancel-btn:hover {
+            background-color: #c0392b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .edit-btn {
+            background-color: #2980b9;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .edit-btn:hover {
+            background-color: #1f6391;
+        }
+        .status-active {
+            color: green;
+            font-weight: bold;
+        }
+        .status-inactive {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
-    <h2>ডেটা সাবমিট করুন</h2>
-    <input type="text" id="name" placeholder="আপনার নাম">
-    <button onclick="addData()">Save</button>
+<div class="container">
+    <h2 id="form-title">নতুন স্কুল এনট্রি করুন</h2>
+    
+    <!-- স্কুল এন্ট্রি / এডিট ফর্ম -->
+    <form id="schoolForm">
+        <!-- Edit করার সময় SchoolID ট্র্যাক রাখার জন্য Hidden ফিল্ড -->
+        <input type="hidden" id="editSchoolId">
 
-    <h3>ডাটাবেজের তথ্য:</h3>
-    <ul id="data-list"></ul>
+        <div class="form-group">
+            <label for="schoolName">স্কুলের নাম (SchoolName):</label>
+            <input type="text" id="schoolName" placeholder="স্কুলের নাম লিখুন" required>
+        </div>
 
-    <script>
-        // ১. Supabase ইনিশিয়ালাইজ করুন
-        const SUPABASE_URL = 'https://kehcdmuiyiikewdxzwdj.supabase.co/rest/v1/';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlaGNkbXVpeWlpa2V3ZHh6d2RqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5OTU1ODQsImV4cCI6MjEwMzU3MTU4NH0.WT5vSe_4_ZacvAd1zz2zAuFB87D5zN7zeOMSQlkclwY';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="isActive" checked>
+            <label for="isActive" style="margin: 0;">Is Active</label>
+        </div>
 
-        // ২. ডাটাবেজে ডাটা ইনসার্ট করা
-        async function addData() {
-            const userName = document.getElementById('name').value;
-            const { data, error } = await _supabase
-                .from('SchoolMaster') // আপনার টেবিল এর নাম
-                .insert([{ name: userName }]);
+        <button type="button" id="saveBtn" onclick="saveSchool()">ডাটা সেভ করুন</button>
+        <button type="button" id="cancelBtn" class="cancel-btn" onclick="resetForm()">বাতিল করুন</button>
+    </form>
 
-            if (error) console.error(error);
-            else {
-                alert('ডাটা সফলভাবে সেভ হয়েছে!');
-                loadData();
+    <hr style="margin: 30px 0;">
+
+    <h3>স্কুল তালিকা (School Master List)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>School ID</th>
+                <th>School Name</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="schoolTableBody">
+            <!-- ডাটাবেজ থেকে ডাটা লোড হয়ে এখানে বসবে -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // ১. আপনার Supabase URL এবং anon key প্রদান করুন
+    const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL'; // উদাহরণ: https://xyz.supabase.co
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    // Supabase Client ইনিশিয়ালাইজেশন
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // পেজ লোড হলে ডাটা লোড করবে
+    window.onload = function() {
+        fetchSchools();
+    };
+
+    // ২. ডাটাবেজ থেকে সকল স্কুল ডাটা নিয়ে আসা (Read/Select)
+    async function fetchSchools() {
+        const { data, error } = await _supabase
+            .from('SchoolMaster')
+            .select('*')
+            .order('SchoolID', { ascending: true });
+
+        if (error) {
+            console.error('ডাটা আনতে সমস্যা হয়েছে:', error);
+            alert('ডাটা লোড করতে সমস্যা হয়েছে!');
+            return;
+        }
+
+        const tbody = document.getElementById('schoolTableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(school => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${school.SchoolID}</td>
+                <td>${school.SchoolName}</td>
+                <td>
+                    <span class="${school.IsActive ? 'status-active' : 'status-inactive'}">
+                        ${school.IsActive ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td>
+                    <button class="edit-btn" onclick="prepareEdit('${school.SchoolID}', '${escapeHtml(school.SchoolName)}', ${school.IsActive})">এডিট</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // ৩. নতুন ডাটা যোগ করা (Insert) অথবা আগের ডাটা আপডেট করা (Update)
+    async function saveSchool() {
+        const editId = document.getElementById('editSchoolId').value;
+        const schoolName = document.getElementById('schoolName').value.trim();
+        const isActive = document.getElementById('isActive').checked;
+
+        if (!schoolName) {
+            alert('দয়া করে স্কুলের নাম লিখুন!');
+            return;
+        }
+
+        if (editId) {
+            // ডাটা এডিট (UPDATE)
+            const { error } = await _supabase
+                .from('SchoolMaster')
+                .update({ 
+                    SchoolName: schoolName, 
+                    IsActive: isActive 
+                })
+                .eq('SchoolID', editId);
+
+            if (error) {
+                console.error('আপডেট করতে সমস্যা:', error);
+                alert('ডাটা আপডেট করা যায়নি!');
+            } else {
+                alert('স্কুলের তথ্য সফলভাবে আপডেট হয়েছে!');
+                resetForm();
+                fetchSchools();
+            }
+        } else {
+            // নতুন ডাটা ইনসার্ট (INSERT)
+            const { error } = await _supabase
+                .from('SchoolMaster')
+                .insert([{ 
+                    SchoolName: schoolName, 
+                    IsActive: isActive 
+                }]);
+
+            if (error) {
+                console.error('সেভ করতে সমস্যা:', error);
+                alert('ডাটা সেভ করা যায়নি!');
+            } else {
+                alert('নতুন স্কুল সফলভাবে সেভ হয়েছে!');
+                resetForm();
+                fetchSchools();
             }
         }
+    }
 
-        // ৩. ডাটাবেজ থেকে ডাটা পড়া (Fetch Data)
-        async function loadData() {
-            const { data: users, error } = await _supabase
-                .from('SchoolMaster')
-                .select('*');
+    // ৪. এডিট মোড চালু করা (ফর্ম ফিল্ডে পুরনো তথ্য বসানো)
+    function prepareEdit(id, name, isActive) {
+        document.getElementById('editSchoolId').value = id;
+        document.getElementById('schoolName').value = name;
+        document.getElementById('isActive').checked = isActive;
 
-            const list = document.getElementById('data-list');
-            list.innerHTML = '';
-            users.forEach(user => {
-                list.innerHTML += `<li>${user.name}</li>`;
-            });
-        }
+        document.getElementById('form-title').innerText = 'স্কুলের তথ্য এডিট করুন (ID: ' + id + ')';
+        document.getElementById('saveBtn').innerText = 'আপডেট করুন';
+        document.getElementById('cancelBtn').style.display = 'inline-block';
+    }
 
-        // পেজ লোড হলে ডাটা দেখাবে
-        loadData();
-    </script>
+    // ৫. ফর্ম রিসেট করা
+    function resetForm() {
+        document.getElementById('editSchoolId').value = '';
+        document.getElementById('schoolName').value = '';
+        document.getElementById('isActive').checked = true;
+
+        document.getElementById('form-title').innerText = 'নতুন স্কুল এনট্রি করুন';
+        document.getElementById('saveBtn').innerText = 'ডাটা সেভ করুন';
+        document.getElementById('cancelBtn').style.display = 'none';
+    }
+
+    // বিশেষ ক্যারেক্টার হ্যান্ডেল করার জন্য হেলপার ফাংশন
+    function escapeHtml(str) {
+        return str.replace(/'/g, "\\'");
+    }
+</script>
+
 </body>
 </html>
